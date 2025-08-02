@@ -18,6 +18,8 @@ pub struct DateWidgetSettings {
     pub color: String,
     pub font: String,
     pub alignment: String,
+    pub position_x: f64,
+    pub position_y: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

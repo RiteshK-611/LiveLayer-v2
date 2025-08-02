@@ -30,6 +30,8 @@ function App() {
       color: "#FF",
       font: "Megrim",
       alignment: "center",
+      position_x: 100,
+      position_y: 100,
     });
 
   // Load persistent state on app startup

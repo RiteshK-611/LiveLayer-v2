@@ -4,6 +4,7 @@ use crate::state::AppState;
 use crate::utils::file_utils::{get_mime_type, is_gif_type};
 use crate::commands::update_wallpaper_state;
 use tauri::Manager;
+use std::fs;
 
 #[cfg(target_os = "windows")]
 use crate::platform::windows::set_wallpaper_behind_desktop_sync;
@@ -90,7 +91,29 @@ pub async fn create_video_wallpaper(
     let path = PathBuf::from(&file_path);
     
     if !path.exists() {
-        return Err("Video file does not exist".to_string());
+        return Err(format!("Video file does not exist: {}", file_path));
+    }
+
+    // For GIF files, copy to a temporary location accessible by the webview
+    let final_converted_path = if is_gif_type(&path.extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_lowercase()) 
+    {
+        // Create temp directory for GIFs
+        let temp_dir = dirs::cache_dir()
+            .unwrap_or_else(|| std::env::temp_dir())
+            .join("wallora")
+            .join("gifs");
+        
+        fs::create_dir_all(&temp_dir).map_err(|e| format!("Failed to create temp directory: {}", e))?;
+        
+        let temp_file = temp_dir.join(path.file_name().unwrap_or_default());
+        fs::copy(&path, &temp_file).map_err(|e| format!("Failed to copy GIF to temp: {}", e))?;
+        
+        format!("asset://localhost/{}", urlencoding::encode(&temp_file.to_string_lossy()))
+    } else {
+        converted_path
     }
 
     // Create unique window label
@@ -126,7 +149,7 @@ pub async fn create_video_wallpaper(
     // Create wallpaper window URL with parameters
     let wallpaper_url = format!(
         "wallpaper.html?path={}&type={}",
-        urlencoding::encode(&converted_path),
+        urlencoding::encode(&final_converted_path),
         urlencoding::encode(&mime_type)
     );
 
@@ -159,6 +182,11 @@ pub async fn create_video_wallpaper(
 
     // Wait for window to be ready
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+
+    // Additional wait for system stability during startup
+    if std::env::args().any(|arg| arg == "--minimized") {
+        tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
+    }
 
     // Windows-specific: Use blocking task to avoid Send issues
     #[cfg(target_os = "windows")]

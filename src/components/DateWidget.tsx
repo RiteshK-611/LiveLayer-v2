@@ -53,6 +53,19 @@ const DateWidget: React.FC<DateWidgetProps> = ({ settings, onSettingsChange }) =
     }
   };
 
+  const handlePositionReset = async () => {
+    const newSettings = { ...settings, position_x: 100, position_y: 100 };
+    onSettingsChange(newSettings);
+    
+    if (settings.enabled) {
+      try {
+        await invoke('update_date_widget', { settings: newSettings });
+      } catch (error) {
+        console.error('Error updating date widget position:', error);
+      }
+    }
+  };
+
   return (
     <div className="date-widget-container">
       <div className="widget-section">
@@ -164,6 +177,17 @@ const DateWidget: React.FC<DateWidgetProps> = ({ settings, onSettingsChange }) =
               <option value="center">Center</option>
               <option value="right">Right</option>
             </select>
+          </div>
+
+          <div className="control-row">
+            <span className="control-label">Reset Position</span>
+            <button
+              onClick={handlePositionReset}
+              className="btn btn-ghost"
+              disabled={!settings.enabled}
+            >
+              Reset to Default
+            </button>
           </div>
         </div>
       </div>

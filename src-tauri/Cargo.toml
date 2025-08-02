@@ -20,6 +20,7 @@ serde_json = "1.0"
 tokio = { version = "1", features = ["rt"] }
 walkdir = "2.5"
 urlencoding = "2.1"
+dirs = "5.0"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["winuser", "errhandlingapi", "wincon"] }

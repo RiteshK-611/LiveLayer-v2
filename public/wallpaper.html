@@ -49,17 +49,20 @@
         const mediaPath = urlParams.get('path');
         const mediaType = urlParams.get('type');
         
-        console.log('Loading wallpaper:', mediaPath, mediaType);
+        console.log('Loading wallpaper:', decodeURIComponent(mediaPath || ''), mediaType);
         
         if (mediaPath && mediaType) {
             const container = document.getElementById('media-container');
             const errorDisplay = document.getElementById('error-display');
             
+            // Decode the media path
+            const decodedPath = decodeURIComponent(mediaPath);
+            
             if (mediaType === 'gif' || mediaType.startsWith('image/')) {
                 // Handle GIF files
                 const img = document.createElement('img');
                 img.id = 'media-element';
-                img.src = mediaPath;
+                img.src = decodedPath;
                 img.alt = 'Wallpaper';
                 
                 img.onload = function() {
@@ -68,7 +71,7 @@
                 };
                 
                 img.onerror = function() {
-                    console.error('GIF/Image failed to load:', mediaPath);
+                    console.error('GIF/Image failed to load:', decodedPath);
                     img.style.display = 'none';
                     errorDisplay.style.display = 'block';
                     errorDisplay.textContent = 'Failed to load image/GIF';
@@ -87,7 +90,7 @@
                 video.preload = 'auto';
                 
                 const source = document.createElement('source');
-                source.src = mediaPath;
+                source.src = decodedPath;
                 source.type = mediaType;
                 video.appendChild(source);
                 
