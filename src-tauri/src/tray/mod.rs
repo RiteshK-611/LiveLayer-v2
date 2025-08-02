@@ -66,6 +66,8 @@ fn handle_tray_menu_event(app: &AppHandle<Wry>, event_id: &str) {
                         color: "#FFFFFF".to_string(),
                         font: "Megrim".to_string(),
                         alignment: "center".to_string(),
+                        position_x: 100.0,
+                        position_y: 100.0,
                     };
                     let _ = crate::commands::create_date_widget(app_clone.clone(), state, default_settings).await;
                 }
