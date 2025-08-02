@@ -267,6 +267,15 @@
       // Make applySettings globally accessible for updates
       window.applySettings = applySettings;
 
+      // Function to update widget settings from external calls
+      window.updateWidgetSettings = function(newSettings) {
+        if (newSettings) {
+          settings = { ...settings, ...newSettings };
+          applySettings();
+          console.log('Widget settings updated:', settings);
+        }
+      };
+
       // Update date and time
       function updateDateTime() {
         const now = new Date();

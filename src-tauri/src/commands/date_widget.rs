@@ -1,7 +1,7 @@
 use tauri::{AppHandle, State, Wry, WebviewUrl};
 use crate::state::AppState;
 use crate::types::DateWidgetSettings;
-use crate::commands::update_date_widget_state;
+use crate::commands::{update_date_widget_state, load_app_state};
 use tauri::Manager;
 use serde_json;
 
@@ -90,18 +90,21 @@ pub async fn create_date_widget(
 
     // Set up position tracking
     let app_clone = app.clone();
-    let date_window_clone = date_window.clone();
     date_window.on_window_event(move |event| {
         if let tauri::WindowEvent::Moved(position) = event {
             let app_handle = app_clone.clone();
             let pos = *position;
             tauri::async_runtime::spawn(async move {
-                // Update position in persistent state
-                if let Ok(mut current_state) = crate::commands::load_app_state(app_handle.clone()).await {
+                // Update position in persistent state and call update_date_widget
+                if let Ok(current_state) = load_app_state(app_handle.clone()).await {
                     if let Some(mut widget_settings) = current_state.date_widget_settings {
                         widget_settings.position_x = pos.x as f64;
                         widget_settings.position_y = pos.y as f64;
-                        let _ = update_date_widget_state(app_handle, widget_settings).await;
+                        
+                        // Update the widget with new position and save state
+                        if let Some(app_state) = app_handle.try_state::<AppState>() {
+                            let _ = update_date_widget(app_state, app_handle.clone(), widget_settings).await;
+                        }
                     }
                 }
             });
@@ -164,18 +167,57 @@ pub async fn update_date_widget(
     app: AppHandle<Wry>,
     settings: DateWidgetSettings
 ) -> Result<String, String> {
-    // Close existing widget and create new one with updated settings
+    // Try to update existing widget first
     let window_label = {
         let date_widgets = state.date_widgets.lock().unwrap();
         date_widgets.get("current").cloned()
     };
     
-    if let Some(label) = window_label {
+    if let Some(label) = &window_label {
         if let Some(window) = app.get_webview_window(&label) {
-            let _ = window.close();
+            // Try to update the existing widget by sending new settings
+            let settings_json = serde_json::to_string(&settings).map_err(|e| e.to_string())?;
+            let encoded_settings = urlencoding::encode(&settings_json);
+            
+            // Update window position if it changed
+            let current_pos = window.outer_position().unwrap_or_default();
+            if (current_pos.x as f64 - settings.position_x).abs() > 1.0 || 
+               (current_pos.y as f64 - settings.position_y).abs() > 1.0 {
+                let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+                    x: settings.position_x as i32,
+                    y: settings.position_y as i32,
+                }));
+            }
+            
+            // Update the widget content by evaluating JavaScript
+            let update_script = format!(
+                r#"
+                if (typeof window.updateWidgetSettings === 'function') {{
+                    window.updateWidgetSettings({});
+                }} else {{
+                    // Fallback: reload with new settings
+                    window.location.href = 'date-widget.html?settings={}';
+                }}
+                "#,
+                settings_json,
+                encoded_settings
+            );
+            
+            match window.eval(&update_script) {
+                Ok(_) => {
+                    // Successfully updated existing widget
+                    let _ = update_date_widget_state(app, settings).await;
+                    return Ok("Date widget updated successfully".to_string());
+                }
+                Err(_) => {
+                    // Fall back to recreating the widget
+                    let _ = window.close();
+                }
+            }
         }
     }
     
+    // If update failed or no existing widget, create new one
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     create_date_widget(app, state, settings).await
 }

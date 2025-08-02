@@ -46,6 +46,9 @@ const DateWidget: React.FC<DateWidgetProps> = ({ settings, onSettingsChange }) =
     // If widget is enabled, update it with new settings
     if (settings.enabled) {
       try {
+        // Save the settings state first
+        await invoke('update_date_widget_state', { settings: newSettings });
+        // Then update the widget
         await invoke('update_date_widget', { settings: newSettings });
       } catch (error) {
         console.error('Error updating date widget:', error);
