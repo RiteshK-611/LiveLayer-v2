@@ -21,8 +21,6 @@ export interface DateWidgetSettings {
   color: string;
   font: string;
   alignment: 'left' | 'center' | 'right';
-  position_x: number;
-  position_y: number;
 }
 
 export interface AppPersistentState {

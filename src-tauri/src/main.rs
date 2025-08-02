@@ -31,41 +31,26 @@ fn main() {
                 if let Ok(state) = commands::load_app_state(app_handle.clone()).await {
                     // Restore wallpaper if exists
                     if let (Some(wallpaper_path), Some(file_type)) = (&state.last_wallpaper_path, &state.last_wallpaper_file_type) {
-                        // Check if file still exists before trying to restore
-                        if std::path::Path::new(wallpaper_path).exists() {
-                            let is_video = ["mp4", "webm", "avi", "mov", "mkv", "gif"].contains(&file_type.to_lowercase().as_str());
-                            
-                            if is_video {
-                                // Wait a bit for system to be ready
-                                tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
-                                
-                                let converted_path = format!("asset://localhost/{}", urlencoding::encode(wallpaper_path));
-                                if let Some(app_state) = app_handle.try_state::<AppState>() {
-                                    let _ = commands::create_video_wallpaper(
-                                        app_handle.clone(),
-                                        wallpaper_path.clone(),
-                                        converted_path,
-                                        app_state,
-                                    ).await;
-                                }
-                            } else {
-                                let _ = commands::set_static_wallpaper(wallpaper_path.clone()).await;
+                        let is_video = ["mp4", "webm", "avi", "mov", "mkv", "gif"].contains(&file_type.to_lowercase().as_str());
+                        
+                        if is_video {
+                            let converted_path = format!("asset://localhost/{}", urlencoding::encode(wallpaper_path));
+                            if let Some(app_state) = app_handle.try_state::<AppState>() {
+                                let _ = commands::create_video_wallpaper(
+                                    app_handle.clone(),
+                                    wallpaper_path.clone(),
+                                    converted_path,
+                                    app_state,
+                                ).await;
                             }
                         } else {
-                            // File doesn't exist, clear the state
-                            let mut updated_state = state.clone();
-                            updated_state.last_wallpaper_path = None;
-                            updated_state.last_wallpaper_file_type = None;
-                            let _ = commands::save_app_state(app_handle.clone(), updated_state).await;
+                            let _ = commands::set_static_wallpaper(wallpaper_path.clone()).await;
                         }
                     }
-                        
+                    
                     // Restore date widget if enabled
                     if let Some(widget_settings) = &state.date_widget_settings {
                         if widget_settings.enabled {
-                            // Wait a bit more for desktop to be ready
-                            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-                            
                             if let Some(app_state) = app_handle.try_state::<AppState>() {
                                 let _ = commands::create_date_widget(
                                     app_handle.clone(),

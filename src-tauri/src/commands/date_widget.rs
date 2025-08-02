@@ -2,7 +2,7 @@ use tauri::{AppHandle, State, Wry, WebviewUrl};
 use crate::state::AppState;
 use crate::types::DateWidgetSettings;
 use crate::commands::update_date_widget_state;
-use tauri::{Manager, PhysicalPosition};
+use tauri::Manager;
 use serde_json;
 
 #[tauri::command]
@@ -49,7 +49,7 @@ pub async fn create_date_widget(
     .always_on_top(false)
     .transparent(true)
     .inner_size(400.0, 200.0)
-    .position(settings.position_x, settings.position_y)
+    .position(100.0, 100.0)
     .build()
     .map_err(|e| format!("Failed to create date widget window: {}", e))?;
 
@@ -87,26 +87,6 @@ pub async fn create_date_widget(
 
     // Save date widget state
     let _ = update_date_widget_state(app.clone(), settings).await;
-
-    // Set up position tracking
-    let app_clone = app.clone();
-    let date_window_clone = date_window.clone();
-    date_window.on_window_event(move |event| {
-        if let tauri::WindowEvent::Moved(position) = event {
-            let app_handle = app_clone.clone();
-            let pos = *position;
-            tauri::async_runtime::spawn(async move {
-                // Update position in persistent state
-                if let Ok(mut current_state) = crate::commands::load_app_state(app_handle.clone()).await {
-                    if let Some(mut widget_settings) = current_state.date_widget_settings {
-                        widget_settings.position_x = pos.x as f64;
-                        widget_settings.position_y = pos.y as f64;
-                        let _ = update_date_widget_state(app_handle, widget_settings).await;
-                    }
-                }
-            });
-        }
-    });
 
     Ok("Date widget created successfully".to_string())
 }

@@ -11,7 +11,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": ["nsis", "msi"],
     "icon": ["icons/wallora.ico", "icons/wallora.png"],
     "category": "Utility",
     "publisher": "Wallora",
@@ -22,7 +22,7 @@
     "licenseFile": "../LICENSE",
     "windows": {
       "webviewInstallMode": {
-        "type": "embedBootstrapper",
+        "type": "downloadBootstrapper", 
         "silent": true
       },
       "certificateThumbprint": null,
@@ -33,10 +33,8 @@
         "headerImage": "icons/headerImg.bmp",
         "sidebarImage": "icons/sidebarImg.bmp",
         "startMenuFolder": "Wallora",
-        "installMode": "currentUser",
+        "installMode": "perMachine",
         "displayLanguageSelector": true,
-        "allowDowngrade": false,
-        "deleteAppDataOnUninstall": false,
         "languages": [
           "english",
           "german",
